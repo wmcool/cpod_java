@@ -1,4 +1,4 @@
-package edu.stanford.futuredata.macrobase.analysis.summary;
+package outlierexplanation.macrobase;
 
 public interface Explanation {
     String prettyPrint();

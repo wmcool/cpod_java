@@ -1,13 +1,8 @@
-package edu.stanford.futuredata.macrobase.analysis.summary.fpg;
+package outlierexplanation.macrobase;
 
-import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
-import edu.stanford.futuredata.macrobase.analysis.summary.fpg.result.FPGAttributeSet;
-import edu.stanford.futuredata.macrobase.analysis.summary.fpg.result.FPGItemsetResult;
-import edu.stanford.futuredata.macrobase.analysis.summary.fpg.result.ItemsetWithCount;
-import edu.stanford.futuredata.macrobase.analysis.summary.util.AttributeEncoder;
-import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
-import edu.stanford.futuredata.macrobase.datamodel.Schema;
-import edu.stanford.futuredata.macrobase.operator.IncrementalOperator;
+import outlierexplanation.*;
+import outlierexplanation.macrobase.model.DataFrame;
+import outlierexplanation.macrobase.model.Schema;
 
 import java.util.*;
 import java.util.function.DoublePredicate;
@@ -20,7 +15,7 @@ import java.util.function.DoublePredicate;
  * are promoted and tracked until their support drops below a certain threshold, at which point they
  * are retired.
  */
-public class IncrementalSummarizer implements IncrementalOperator<Explanation> {
+public class IncrementalSummarizer implements IncrementalOperator<FPGExplanation> {
     // Number of panes that we keep track in the summarizer
     private int numPanes;
     // Default parameters for the summarizer

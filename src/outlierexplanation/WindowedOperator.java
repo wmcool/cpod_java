@@ -1,9 +1,13 @@
-package edu.stanford.futuredata.macrobase.operator;
+package outlierexplanation;
 
-import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
-import edu.stanford.futuredata.macrobase.util.ArrayUtils;
+import outlierexplanation.macrobase.IncrementalOperator;
+import outlierexplanation.macrobase.Operator;
+import outlierexplanation.macrobase.model.DataFrame;
+import outlierexplanation.macrobase.util.ArrayUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Wraps an incremental operator to work over rolling windows.

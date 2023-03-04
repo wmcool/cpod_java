@@ -1,4 +1,4 @@
-package edu.stanford.futuredata.macrobase.operator;
+package outlierexplanation.macrobase;
 
 /**
  * Generic interface for operations. Should not modify input.

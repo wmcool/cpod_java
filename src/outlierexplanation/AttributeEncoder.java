@@ -1,10 +1,11 @@
-package edu.stanford.futuredata.macrobase.analysis.summary.util;
-
-import java.util.*;
-import java.util.stream.Collectors;
+package outlierexplanation;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import outlierexplanation.macrobase.util.ModBitSet;
+
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Encode every combination of attribute names and values into a distinct integer.

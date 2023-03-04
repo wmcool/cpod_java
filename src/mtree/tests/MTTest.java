@@ -6,11 +6,20 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
+import outlierexplanation.FPGExplanation;
+import outlierexplanation.WindowedOperator;
+import outlierexplanation.exstream.algo.Entropy;
+import outlierexplanation.exstream.model.Reward;
 import mtree.utils.Constants;
 import mtree.utils.Utils;
 
 import outlierdetection.CPOD;
+import outlierexplanation.macrobase.IncrementalSummarizer;
+import outlierexplanation.macrobase.StreamEvaluator;
+import outlierexplanation.macrobase.model.DataFrame;
 
 public class MTTest {
 
@@ -25,7 +34,7 @@ public class MTTest {
 
     public static double start;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         readArguments(args);
         for (String arg : args) {
@@ -38,8 +47,20 @@ public class MTTest {
         Stream s = Stream.getInstance("");
 
         CPOD cpod = new CPOD();
+        StreamEvaluator se = new StreamEvaluator(Constants.W);
 
         double totalTime = 0;
+
+        IncrementalSummarizer outlierSummarizer = new IncrementalSummarizer();
+        outlierSummarizer.setOutlierColumn("outlier");
+        outlierSummarizer.setMinSupport(.5);
+        WindowedOperator<FPGExplanation> windowedSummarizer = new WindowedOperator<>(outlierSummarizer);
+        windowedSummarizer.setWindowLength(Constants.W);
+        windowedSummarizer.setTimeColumn("time");
+        windowedSummarizer.setSlideLength(Constants.slide);
+        windowedSummarizer.initialize();
+
+
         while (!stop) {
 
             if (Constants.numberWindow != -1 && numberWindows > Constants.numberWindow) {
@@ -69,6 +90,47 @@ public class MTTest {
             switch (algorithm) {
                 case "cpod":
                     ArrayList<Data> outliers = cpod.detectOutlier(incomingData, currentTime, Constants.W, Constants.slide);
+                    if(outliers.isEmpty()) continue;
+                    // EXStream
+//                    incomingData.removeAll(outliers);
+//                    List<Reward> rewards = Entropy.rewards(incomingData, outliers);
+//                    for(int i=0;i<rewards.size();i++) {
+//                        System.out.println("attr: " + rewards.get(i).attrIdx + " reward " + rewards.get(i).reward);
+//                        if(!rewards.get(i).explanations.isEmpty()) {
+//                            for(double[] range : rewards.get(i).explanations) {
+//                                System.out.println("outlier range: [" + range[0] + ", " + range[1] + "]");
+//                            }
+//                        }
+//                    }
+                    // Macrobase
+                    List<String[]> scatter = se.addDatas(incomingData);
+                    Set<Data> exist = new HashSet<>();
+                    for(Data data : outliers) {
+                        exist.add(data);
+                    }
+                    DataFrame df = new DataFrame();
+                    int k = incomingData.get(0).values.length;
+                    int n = incomingData.size();
+                    for(int i=0;i<k;i++) {
+                        String[] attrs = new String[n];
+                        for(int j=0;j<n;j++) {
+                            attrs[j] = scatter.get(j)[i];
+                        }
+                        df.addColumn("a" + i, attrs);
+                    }
+
+                    double[] isOutlier = new double[n];
+                    double[] time = new double[n];
+                    for(int j=0;j<n;j++) {
+                        if(exist.contains(incomingData.get(j))) isOutlier[j] = 1.0;
+                        else isOutlier[j] = 0.0;
+                        time[j] = incomingData.get(j).arrivalTime;
+                    }
+                    df.addColumn("outlier", isOutlier);
+                    df.addColumn("time", time);
+                    windowedSummarizer.process(df);
+                    FPGExplanation explanation = windowedSummarizer.getResults().prune();
+                    System.out.println(explanation.prettyPrint());
 
                     double elapsedTimeInSec = (Utils.getCPUTime() - start) * 1.0 / 1000000000;
                     System.out.println("Num outliers = " + outliers.size());

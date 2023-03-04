@@ -1,6 +1,6 @@
-package edu.stanford.futuredata.macrobase.operator;
+package outlierexplanation.macrobase;
 
-import edu.stanford.futuredata.macrobase.datamodel.DataFrame;
+import outlierexplanation.macrobase.model.DataFrame;
 
 /**
  * An operator which supports partial updates in the form of "minibatches" of data.

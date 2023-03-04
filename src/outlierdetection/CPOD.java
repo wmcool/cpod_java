@@ -42,6 +42,7 @@ public class CPOD {
     public static ArrayList<CorePoint> all_distinct_cores = new ArrayList<>();
     public static HashMap<Integer, HashSet<C_Data>> outlierList = new HashMap<>();
 
+    // 监控左邻居的？
     public static HashMap<Integer, HashSet<C_Data>> neighborCountTrigger = new HashMap<>();
 
     public static double timeProcessExpiredSlide = 0;
@@ -81,7 +82,6 @@ public class CPOD {
 
             ArrayList<C_Data> idx = all_slides.get(d.sIndex);
             if (idx != null) {
-
                 idx.add(d);
             } else {
                 idx = new ArrayList<>(Constants.slide);
@@ -99,17 +99,13 @@ public class CPOD {
         processExpiredData(expiredSlideIndex);
 
         for (int sIdx : slide_to_process) {
-
             ArrayList<CorePoint> corePoints = selectCore(sIdx);
-
             all_core_points.put(sIdx, corePoints);
-
-           
         }
-
 
         int newestSlide = (currentTime - 1) / Constants.slide;
 
+        // UpdateHalfRCount
         if (currentTime == Constants.W) {
             for (CorePoint c : all_distinct_cores) {
                 c.totalHalfRPoints = c.getTotalHalfRPoints();
@@ -323,7 +319,9 @@ public class CPOD {
 
     private ArrayList<CorePoint> selectCore(Integer sIdx) {
 
+        // 支持该窗口的核心点
         ArrayList<CorePoint> corePoints = new ArrayList<>();
+        // 新创建的核心点
         ArrayList<CorePoint> newCores = new ArrayList<>();
 
 //        ArrayList<C_Data> temp_list = new ArrayList<>();
@@ -369,7 +367,8 @@ public class CPOD {
                 }
             }
 
-            if ((d.closeCoreMaps_R.isEmpty() && d.closeCoreMaps_halfR == null)) {
+            // scan in all core points
+            if ((d.closeCoreMaps_R.isEmpty() && d.closeCoreMaps_halfR == null)) { // 加入到现有核心点
 
 //                ArrayList<CorePoint> inRCore = new ArrayList<>();
                 //using mtree
@@ -409,7 +408,7 @@ public class CPOD {
                     }
 //                    scanForCore(c, sIdx);
 
-                } else {
+                } else { // 创建新核心点
                     c = new CorePoint(d);
                     all_distinct_cores.add(c);
                     newCores.add(c);
@@ -494,9 +493,7 @@ public class CPOD {
                 d.neighborCount += c.closeNeighbors_halfR.get(slideIndex).size();
                 d.numSucceedingNeighbor += c.closeNeighbors_halfR.get(slideIndex).size();
                 if (d.numSucceedingNeighbor >= Constants.k) {
-
                     return;
-
                 }
                 possibleCandidates.add(c.closeNeighbors_R.get(slideIndex));
                 possibleCandidates.add(c.closeNeighbors_3halfR.get(slideIndex));
@@ -512,7 +509,7 @@ public class CPOD {
                 case_ = 1;
                 for (int i = 0; i < cores.size(); i++) {
                     CorePoint c = cores.get(i);
-                    if (rf.distance_to_cores.get(i) <= Constants.R * 3 / 2) {
+                    if (rf.distance_to_cores.get(i) <= Constants.R * 3 / 2) { // R不包括R/2，所以要单独算一下
                         possibleCandidates.add(c.closeNeighbors_halfR.get(slideIndex));
                     }
 
@@ -533,6 +530,7 @@ public class CPOD {
 
             int min_arrival_time = all_slides.get(slideIndex).get(0).arrivalTime;
 
+            // 避免重复计算，剪枝用
             boolean[] checked = null;
             if (case_ == 1) {
                 checked = new boolean[Constants.slide];
@@ -546,8 +544,6 @@ public class CPOD {
                     C_Data d2 = ps.get(t);
 //                if (!checked.contains(d2)) {
                     if (case_ == 0 || (case_ == 1 && !checked[d2.arrivalTime - min_arrival_time])) {
-
-                       
                         if (check_distance_neighbor_boolean(d, d2)) {
                             //add for stats
 
@@ -576,6 +572,7 @@ public class CPOD {
         }
     }
 
+    // 和右探测逻辑基本相同，但左边需要neighbor_trigger
     private void probe_slide_left(C_Data d, int slideIndex) {
 
 //        int countNeighbor = 0;

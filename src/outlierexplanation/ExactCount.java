@@ -1,4 +1,4 @@
-package edu.stanford.futuredata.macrobase.analysis.summary.fpg;
+package outlierexplanation;
 
 import java.util.HashMap;
 import java.util.List;

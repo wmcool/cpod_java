@@ -1,4 +1,4 @@
-package mtree.outlierexplanation.exstream.model;
+package outlierexplanation.exstream.model;
 
 import java.util.ArrayList;
 import java.util.List;

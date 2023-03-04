@@ -1,4 +1,4 @@
-package edu.stanford.futuredata.macrobase.analysis.summary.fpg.result;
+package outlierexplanation;
 
 import java.util.Set;
 

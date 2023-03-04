@@ -1,6 +1,4 @@
-package edu.stanford.futuredata.macrobase.analysis.summary.fpg.result;
-
-import edu.stanford.futuredata.macrobase.analysis.summary.util.AttributeEncoder;
+package outlierexplanation;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,4 +1,4 @@
-package edu.stanford.futuredata.macrobase.util;
+package outlierexplanation.macrobase.util;
 
 public class ArrayUtils {
     public static double min(double[] a) {

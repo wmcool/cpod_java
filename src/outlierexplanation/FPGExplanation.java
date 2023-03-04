@@ -1,7 +1,5 @@
-package edu.stanford.futuredata.macrobase.analysis.summary.fpg;
+package outlierexplanation;
 
-import edu.stanford.futuredata.macrobase.analysis.summary.Explanation;
-import edu.stanford.futuredata.macrobase.analysis.summary.fpg.result.FPGAttributeSet;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -1,8 +1,8 @@
-package mtree.outlierexplanation.exstream.algo;
+package outlierexplanation.exstream.algo;
 
 
-import mtree.outlierexplanation.exstream.model.Reward;
-import mtree.outlierexplanation.exstream.model.Segment;
+import outlierexplanation.exstream.model.Reward;
+import outlierexplanation.exstream.model.Segment;
 import mtree.tests.Data;
 
 import java.util.ArrayList;

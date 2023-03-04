@@ -1,4 +1,4 @@
-package edu.stanford.futuredata.macrobase.analysis.summary.util;
+package outlierexplanation.macrobase.util;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -46,7 +46,7 @@ import java.util.stream.StreamSupport;
  * @author  Martin Buchholz
  * @since   JDK1.0
  */
-public class ModBitSet implements Cloneable, java.io.Serializable {
+public class ModBitSet implements Cloneable, Serializable {
     /*
      * BitSets are packed into arrays of "words."  Currently a word is
      * a long, which consists of 64 bits, requiring 6 address bits.

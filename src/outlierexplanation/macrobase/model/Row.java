@@ -1,15 +1,16 @@
-package edu.stanford.futuredata.macrobase.datamodel;
-
-import static java.util.stream.Collectors.toList;
+package outlierexplanation.macrobase.model;
 
 import com.google.common.base.Joiner;
+import org.apache.commons.lang3.StringUtils;
+
 import java.io.PrintStream;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import org.apache.commons.lang3.StringUtils;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Format for import / export small batches

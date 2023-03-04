@@ -1,7 +1,6 @@
-package edu.stanford.futuredata.macrobase.analysis.summary.fpg;
+package outlierexplanation;
 
 import com.google.common.collect.Sets;
-import edu.stanford.futuredata.macrobase.analysis.summary.fpg.result.ItemsetWithCount;
 
 import java.util.*;
 import java.util.stream.Collectors;
