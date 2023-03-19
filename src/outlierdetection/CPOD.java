@@ -37,7 +37,9 @@ public class CPOD {
     public static HashMap<Integer, ArrayList<C_Data>> all_slides = new HashMap<>();
 
     public static HashMap<Integer, ArrayList<CorePoint>> all_core_points = new HashMap<>();
-    public static MTreeCorePoint mtree = new MTreeCorePoint();
+    public static MTreeCorePoint mtree = new MTreeCorePoint(); // mtree没有删除环节！！
+    public static HashMap<String, Integer> gridCount = new HashMap<>();
+    public static HashMap<String, CorePoint> gridCore = new HashMap<>();
 
     public static ArrayList<CorePoint> all_distinct_cores = new ArrayList<>();
     public static HashMap<Integer, HashSet<C_Data>> outlierList = new HashMap<>();
@@ -125,7 +127,6 @@ public class CPOD {
                 continue;
             }
             if (d.neighborCount < Constants.k) {
-
                 probe(d, newestSlide);
 //                pointNeedProb += 1;
             }
@@ -211,6 +212,11 @@ public class CPOD {
             neighborCountTrigger.remove(expiredSlideIndex - 1);
         }
 
+//        if(all_core_points.get(expiredSlideIndex) != null) {
+//            for(CorePoint c : all_core_points.get(expiredSlideIndex)) {
+//                mtree.remove(c);
+//            }
+//        }
         all_core_points.remove(expiredSlideIndex);
 //        all_indexed_cores.remove(expiredSlideIndex);
         for (CorePoint c : all_distinct_cores) {
@@ -330,6 +336,10 @@ public class CPOD {
 //            System.out.println("Slide index = "+ sIdx);
 
             C_Data d = all_slides.get(sIdx).get(i);
+            String cellBase = getCellBase(d);
+            if(gridCore.get(cellBase) != null) {
+
+            }
 
             //scan with current cores first
             for (int j = corePoints.size() - 1; j >= 0; j--) {
@@ -433,7 +443,7 @@ public class CPOD {
         }
 
         //find scan for cores
-        boolean[] checked = new boolean[Constants.slide];
+        boolean[] checked = new boolean[Constants.slide]; // 避免同一个点被多次加入核心点索引
         for (CorePoint c : corePoints) {
             if (c.closeNeighbors_halfR.get(sIdx) == null) {
                 c.closeNeighbors_halfR.put(sIdx, new ArrayList<>());
@@ -1000,6 +1010,16 @@ public class CPOD {
 
     }
 
+    public static String getCellBase(C_Data d) {
+        StringBuilder sb = new StringBuilder();
+        for(int i=0;i<Constants.dimensions;i++) {
+            sb.append((d.values[i] / Constants.edge) * Constants.edge);
+            if(i != Constants.dimensions - 1) {
+                sb.append(",");
+            }
+        }
+        return sb.toString();
+    }
 }
 
 class MTreeClass extends MTree<Data> {
@@ -1055,5 +1075,6 @@ class MTreeCorePoint extends MTree<Data> {
         _check();
         return result;
     }
+}
 
-};
+

@@ -77,9 +77,8 @@ public class MTTest {
             } else {
                 incomingData = s.getIncomingData(currentTime, Constants.W, Constants.dataFile);
                 currentTime = currentTime + Constants.W;
-
                 Constants.dimensions = incomingData.get(0).values.length;
-
+                Constants.edge = Math.pow(Constants.R, 1.0 / Constants.dimensions);
             }
 
             start = Utils.getCPUTime(); // requires java 1.5
@@ -90,8 +89,15 @@ public class MTTest {
             switch (algorithm) {
                 case "cpod":
                     ArrayList<Data> outliers = cpod.detectOutlier(incomingData, currentTime, Constants.W, Constants.slide);
-                    if(outliers.isEmpty()) continue;
-                    // EXStream
+//                    if(outliers.isEmpty()) {
+//                        System.out.println("empty");
+//                        continue;
+//                    } else {
+//                        for(Data data : outliers) {
+//                            System.out.println("outlier: " + data.arrivalTime);
+//                        }
+//                    }
+//                    // EXStream
 //                    incomingData.removeAll(outliers);
 //                    List<Reward> rewards = Entropy.rewards(incomingData, outliers);
 //                    for(int i=0;i<rewards.size();i++) {
@@ -102,44 +108,44 @@ public class MTTest {
 //                            }
 //                        }
 //                    }
-                    // Macrobase
-                    List<String[]> scatter = se.addDatas(incomingData);
-                    Set<Data> exist = new HashSet<>();
-                    for(Data data : outliers) {
-                        exist.add(data);
-                    }
-                    DataFrame df = new DataFrame();
-                    int k = incomingData.get(0).values.length;
-                    int n = incomingData.size();
-                    for(int i=0;i<k;i++) {
-                        String[] attrs = new String[n];
-                        for(int j=0;j<n;j++) {
-                            attrs[j] = scatter.get(j)[i];
-                        }
-                        df.addColumn("a" + i, attrs);
-                    }
-
-                    double[] isOutlier = new double[n];
-                    double[] time = new double[n];
-                    for(int j=0;j<n;j++) {
-                        if(exist.contains(incomingData.get(j))) isOutlier[j] = 1.0;
-                        else isOutlier[j] = 0.0;
-                        time[j] = incomingData.get(j).arrivalTime;
-                    }
-                    df.addColumn("outlier", isOutlier);
-                    df.addColumn("time", time);
-                    windowedSummarizer.process(df);
-                    FPGExplanation explanation = windowedSummarizer.getResults().prune();
-                    System.out.println(explanation.prettyPrint());
-
+//                    // Macrobase
+//                    List<String[]> scatter = se.addDatas(incomingData);
+//                    Set<Data> exist = new HashSet<>();
+//                    for(Data data : outliers) {
+//                        exist.add(data);
+//                    }
+//                    DataFrame df = new DataFrame();
+//                    int k = incomingData.get(0).values.length;
+//                    int n = incomingData.size();
+//                    for(int i=0;i<k;i++) {
+//                        String[] attrs = new String[n];
+//                        for(int j=0;j<n;j++) {
+//                            attrs[j] = scatter.get(j)[i];
+//                        }
+//                        df.addColumn("a" + i, attrs);
+//                    }
+//
+//                    double[] isOutlier = new double[n];
+//                    double[] time = new double[n];
+//                    for(int j=0;j<n;j++) {
+//                        if(exist.contains(incomingData.get(j))) isOutlier[j] = 1.0;
+//                        else isOutlier[j] = 0.0;
+//                        time[j] = incomingData.get(j).arrivalTime;
+//                    }
+//                    df.addColumn("outlier", isOutlier);
+//                    df.addColumn("time", time);
+//                    windowedSummarizer.process(df);
+//                    FPGExplanation explanation = windowedSummarizer.getResults().prune();
+//                    System.out.println(explanation.prettyPrint());
+//
                     double elapsedTimeInSec = (Utils.getCPUTime() - start) * 1.0 / 1000000000;
                     System.out.println("Num outliers = " + outliers.size());
                     if (numberWindows > 1) {
                         totalTime += elapsedTimeInSec;
                     }
-
-                    break;
-
+//
+//                    break;
+//                    Thread.sleep(1000);
             }
 
             if (numberWindows == 1) {

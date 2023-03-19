@@ -23,18 +23,19 @@ public class Entropy {
             else if(b.reward > a.reward) return 1;
             else return 0;
         });
-        double maxDiff = -1;
-        for(int i=1;i<hSegments.size();i++) {
-            if(hSegments.get(i).reward - hSegments.get(i-1).reward > maxDiff) {
-                maxDiff = hSegments.get(i).reward - hSegments.get(i-1).reward;
-            }
-        }
-        int i = 1;
-        for(;i<hSegments.size() && hSegments.get(i).reward - hSegments.get(i-1).reward < maxDiff;i++) {}
+//        double maxDiff = -1;
+//        for(int i=1;i<hSegments.size();i++) {
+//            if(hSegments.get(i).reward - hSegments.get(i-1).reward > maxDiff) {
+//                maxDiff = hSegments.get(i).reward - hSegments.get(i-1).reward;
+//            }
+//        }
+//        int i = 1;
+//        for(;i<hSegments.size() && hSegments.get(i).reward - hSegments.get(i-1).reward < maxDiff;i++) {}
         List<Reward> res = new ArrayList<>();
-        for(int j=0;j<i-1;j++) {
-            res.add(hSegments.get(j));
-        }
+        res.addAll(hSegments);
+//        for(int j=0;j<i-1;j++) {
+//            res.add(hSegments.get(j));
+//        }
         return res;
     }
 

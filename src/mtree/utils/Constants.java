@@ -16,6 +16,7 @@ public class Constants {
     public static int numCols = 1;
     public static int dimensions = 55;
     public static int samplingPeriod = 100;
+    public static double edge;
 //    public static String forestCoverFileName = "C:\\Users\\Luan\\MTree_New\\covtype.data";
 //    public static String taoFileName = "C:\\Users\\Luan\\MTree_New\\tao.txt";
 //    public static String outputStorm = "C:\\Users\\Luan\\MTree_New\\storm";
