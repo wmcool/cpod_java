@@ -420,6 +420,7 @@ public class MTree<DATA> {
 		return new Query(queryData, range, limit);
 	}
 
+
 	/**
 	 * Performs a nearest-neighbor query on the M-Tree, without constraints.
 	 * @param queryData The query data object.

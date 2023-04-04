@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+
+import de.bwaldvogel.liblinear.*;
 import mtree.ComposedSplitFunction;
 import mtree.DistanceFunctions;
 import mtree.MTree;
@@ -41,8 +43,9 @@ public class CPOD {
     public static HashMap<String, Integer> gridCount = new HashMap<>();
     public static HashMap<String, CorePoint> gridCore = new HashMap<>();
 
-    public static ArrayList<CorePoint> all_distinct_cores = new ArrayList<>();
+    public static HashSet<CorePoint> all_distinct_cores = new HashSet<>();
     public static HashMap<Integer, HashSet<C_Data>> outlierList = new HashMap<>();
+    public static HashSet<C_Data> outlierSet = new HashSet<>();
 
     // 监控左邻居的？
     public static HashMap<Integer, HashSet<C_Data>> neighborCountTrigger = new HashMap<>();
@@ -91,7 +94,7 @@ public class CPOD {
                 all_slides.put(d.sIndex, idx);
             }
         }
-        MTTest.start = Utils.getCPUTime();
+//        MTTest.start = Utils.getCPUTime();
 
 //        long start = Utils.getCPUTime();
         ArrayList<Data> result = new ArrayList<>((int) (data.size() * 1.0 / 100));
@@ -104,6 +107,7 @@ public class CPOD {
             ArrayList<CorePoint> corePoints = selectCore(sIdx);
             all_core_points.put(sIdx, corePoints);
         }
+        System.out.println("Core Point Num: " + all_distinct_cores.size());
 
         int newestSlide = (currentTime - 1) / Constants.slide;
 
@@ -126,6 +130,9 @@ public class CPOD {
             if (d.closeCoreMaps_halfR != null && d.closeCoreMaps_halfR.totalHalfRPoints >= Constants.k + 1) {
                 continue;
             }
+            if(gridCount.getOrDefault(d.cellBase, 0) >= Constants.k + 1) {
+                continue;
+            }
             if (d.neighborCount < Constants.k) {
                 probe(d, newestSlide);
 //                pointNeedProb += 1;
@@ -140,12 +147,13 @@ public class CPOD {
                 if (d.closeCoreMaps_halfR != null && d.closeCoreMaps_halfR.totalHalfRPoints >= Constants.k + 1) {
                     continue;
                 }
+                if(gridCount.getOrDefault(d.cellBase, 0) >= Constants.k + 1) {
+                    continue;
+                }
                 if (d.neighborCount < Constants.k && d.sIndex < newestSlide) {
                     if (d.lastProbRight < newestSlide) {
-
                         probe(d, newestSlide);
                     }
-
                 }
                 if (d.neighborCount < Constants.k) {
                     result.add(d);
@@ -153,9 +161,48 @@ public class CPOD {
             }
         }
 
- 
-        return result;
+        if(Constants.explanSingleOutlier) {
+            for(Data d : result) {
+//            MTreeCorePoint.Query query = mtree.getNearest(d, Double.MAX_VALUE, 5);
+//            CorePoint c = null;
+//            double distance = Double.MAX_VALUE;
+                FeatureNode[][] trainData = new FeatureNode[6][d.values.length];
+                double[] labels = new double[6];
+                for(int k=-3;k<3;k++) {
+                    int idx;
+                    if(currentTime == W) {
+                        idx = (d.arrivalTime + k + Constants.W) % Constants.W;
+                    } else {
+                        idx = (d.arrivalTime + k + Constants.slide) % Constants.slide;
+                    }
+                    C_Data cur = d_to_process.get(idx);
+                    for(int j=1;j<=cur.values.length;j++) {
+                        trainData[k+3][j-1] = new FeatureNode(j, cur.values[j-1]);
+                    }
+                    labels[k+3] = outlierSet.contains(cur)? -1 : 1;
+                }
+                // 创建问题对象
+                Problem problem = new Problem();
+                problem.l = labels.length; // 样本数量
+                problem.n = trainData[0].length; // 特征数量
+                problem.x = trainData; // 训练数据
+                problem.y = labels; // 标签
 
+                // 设置线性SVM的参数
+                SolverType solver = SolverType.L2R_L2LOSS_SVC;
+                double C = 1.0;
+                double eps = 0.01;
+                Parameter parameter = new Parameter(solver, C, eps);
+                // 训练模型
+                Model model = Linear.train(problem, parameter);
+                System.out.println("outlier " + d + " weight ");
+                for(double w : model.getFeatureWeights()) {
+                    System.out.print(w + ", ");
+                }
+                System.out.println();
+            }
+        }
+        return result;
     }
 
     public double computeNumberActiveCorePoints() {
@@ -190,6 +237,48 @@ public class CPOD {
     }
 
     private void processExpiredData(int expiredSlideIndex) {
+
+        if(all_core_points.containsKey(expiredSlideIndex)) {
+            for(CorePoint c : all_core_points.get(expiredSlideIndex)) {
+                gridCore.remove(c.cellBase);
+            }
+        }
+        all_core_points.remove(expiredSlideIndex);
+//        all_indexed_cores.remove(expiredSlideIndex);
+        for (CorePoint c : all_distinct_cores) {
+            if (c.closeNeighbors_halfR.get(expiredSlideIndex) != null) {
+                c.totalHalfRPoints -= c.closeNeighbors_halfR.get(expiredSlideIndex).size();
+                c.closeNeighbors_halfR.remove(expiredSlideIndex);
+            }
+            c.closeNeighbors_R.remove(expiredSlideIndex);
+            c.closeNeighbors_3halfR.remove(expiredSlideIndex);
+            c.closeNeighbors_2R.remove(expiredSlideIndex);
+        }
+
+        if(all_slides.containsKey(expiredSlideIndex)) {
+            for(C_Data d : all_slides.get(expiredSlideIndex)) {
+                gridCount.put(d.cellBase, gridCount.getOrDefault(d.cellBase, 0) - 1);
+                if(gridCount.get(d.cellBase) == 0) {
+                    gridCount.remove(d.cellBase);
+                }
+                outlierSet.remove(d);
+//                if(d.closeCoreMaps_halfR != null) {
+//                    CorePoint c = d.closeCoreMaps_halfR;
+//                    if(c.sIndex <= expiredSlideIndex && c.closeNeighbors_halfR.size() == 0 && c.closeNeighbors_R.size() == 0) {
+//                        all_distinct_cores.remove(c);
+//                        mtree.remove(c);
+//                    }
+//                }
+//                if(d.closeCoreMaps_R != null) {
+//                    for(CorePoint c : d.closeCoreMaps_R) {
+//                        if(c.sIndex <= expiredSlideIndex && c.closeNeighbors_halfR.size() == 0 && c.closeNeighbors_R.size() == 0) {
+//                            all_distinct_cores.remove(c);
+//                            mtree.remove(c);
+//                        }
+//                    }
+//                }
+            }
+        }
         all_slides.remove(expiredSlideIndex);
         outlierList.remove(expiredSlideIndex);
 //        for(Integer sIdx: all_slides.keySet()){
@@ -217,18 +306,6 @@ public class CPOD {
 //                mtree.remove(c);
 //            }
 //        }
-        all_core_points.remove(expiredSlideIndex);
-//        all_indexed_cores.remove(expiredSlideIndex);
-        for (CorePoint c : all_distinct_cores) {
-            if (c.closeNeighbors_halfR.get(expiredSlideIndex) != null) {
-                c.totalHalfRPoints -= c.closeNeighbors_halfR.get(expiredSlideIndex).size();
-                c.closeNeighbors_halfR.remove(expiredSlideIndex);
-            }
-            c.closeNeighbors_R.remove(expiredSlideIndex);
-            c.closeNeighbors_3halfR.remove(expiredSlideIndex);
-            c.closeNeighbors_2R.remove(expiredSlideIndex);
-        }
-
     }
 
     private HashMap<Integer, ArrayList<C_Data>> indexByAtt(ArrayList<C_Data> datas, int i, double min_value) {
@@ -327,6 +404,7 @@ public class CPOD {
 
         // 支持该窗口的核心点
         ArrayList<CorePoint> corePoints = new ArrayList<>();
+//        HashSet<CorePoint> corePoints = new HashSet<>();
         // 新创建的核心点
         ArrayList<CorePoint> newCores = new ArrayList<>();
 
@@ -336,15 +414,13 @@ public class CPOD {
 //            System.out.println("Slide index = "+ sIdx);
 
             C_Data d = all_slides.get(sIdx).get(i);
-            String cellBase = getCellBase(d);
-            if(gridCore.get(cellBase) != null) {
+            gridCount.put(d.cellBase, gridCount.getOrDefault(d.cellBase, 0) + 1);
 
-            }
-
-            //scan with current cores first
-            for (int j = corePoints.size() - 1; j >= 0; j--) {
-                CorePoint c = corePoints.get(j);
-                double distance = DistanceFunction.euclideanDistance(d, c);
+            if((d.closeCoreMaps_R.isEmpty() && d.closeCoreMaps_halfR == null)) {
+                //scan with current cores first
+                for (int j = corePoints.size() - 1; j >= 0; j--) {
+                    CorePoint c = corePoints.get(j);
+                    double distance = DistanceFunction.euclideanDistance(d, c);
 //                if(count > 0){
 //                    numDCS +=1;
 //                }
@@ -352,28 +428,56 @@ public class CPOD {
 //                    numDCSForIndexing += 1;
 //                }
 
+                    if (distance <= Constants.R / 2) {
+                        ArrayList<C_Data> closeNeighbors = c.closeNeighbors_halfR.get(sIdx);
+                        if (closeNeighbors == null) {
+                            closeNeighbors = new ArrayList<>(Arrays.asList(d));
+//                        closeNeighbors.add(d);
+                            c.closeNeighbors_halfR.put(sIdx, closeNeighbors);
+                        } else {
+                            closeNeighbors.add(d);
+                        }
+                        d.closeCoreMaps_halfR = c;
+                        break;
+                    } else if (distance <= Constants.R) {
+                        ArrayList<C_Data> closeNeighbors = c.closeNeighbors_R.get(sIdx);
+                        if (closeNeighbors == null) {
+                            closeNeighbors = new ArrayList<>(Arrays.asList(d));
+//                        closeNeighbors.add(d);
+                            c.closeNeighbors_R.put(sIdx, closeNeighbors);
+                        } else {
+                            closeNeighbors.add(d);
+                        }
+                        d.closeCoreMaps_R.add(c);
+                        break;
+                    }
+                }
+            }
+
+            if((d.closeCoreMaps_R.isEmpty() && d.closeCoreMaps_halfR == null) && gridCore.get(d.cellBase) != null) {
+                CorePoint cc = gridCore.get(d.cellBase);
+                double distance = DistanceFunction.euclideanDistance(d, cc);
+                corePoints.add(cc);
                 if (distance <= Constants.R / 2) {
-                    ArrayList<C_Data> closeNeighbors = c.closeNeighbors_halfR.get(sIdx);
+                    ArrayList<C_Data> closeNeighbors = cc.closeNeighbors_halfR.get(sIdx);
                     if (closeNeighbors == null) {
                         closeNeighbors = new ArrayList<>(Arrays.asList(d));
 //                        closeNeighbors.add(d);
-                        c.closeNeighbors_halfR.put(sIdx, closeNeighbors);
+                        cc.closeNeighbors_halfR.put(sIdx, closeNeighbors);
                     } else {
                         closeNeighbors.add(d);
                     }
-                    d.closeCoreMaps_halfR = c;
-                    break;
+                    d.closeCoreMaps_halfR = cc;
                 } else if (distance <= Constants.R) {
-                    ArrayList<C_Data> closeNeighbors = c.closeNeighbors_R.get(sIdx);
+                    ArrayList<C_Data> closeNeighbors = cc.closeNeighbors_R.get(sIdx);
                     if (closeNeighbors == null) {
                         closeNeighbors = new ArrayList<>(Arrays.asList(d));
 //                        closeNeighbors.add(d);
-                        c.closeNeighbors_R.put(sIdx, closeNeighbors);
+                        cc.closeNeighbors_R.put(sIdx, closeNeighbors);
                     } else {
                         closeNeighbors.add(d);
                     }
-                    d.closeCoreMaps_R.add(c);
-                    break;
+                    d.closeCoreMaps_R.add(cc);
                 }
             }
 
@@ -434,6 +538,7 @@ public class CPOD {
                         closeNeighbors.add(d);
                     }
                     d.closeCoreMaps_halfR = c;
+                    gridCore.put(d.cellBase, c);
 
                     //probe neighbors for c
 //                    scanForCore(c, sIdx);
@@ -489,11 +594,14 @@ public class CPOD {
 
         //find close core
 //        long start = Utils.getCPUTime();
-        ResultFindCore rf = findCloseCore(d, slideIndex);
-//        System.out.println("Time to find core = "+ (Utils.getCPUTime() - start) * 1.0 / 1000000000);
+        double distance = 0;
+        ArrayList<CorePoint> cores;
+        ResultFindCore rf = null;
+        rf = findCloseCore(d, slideIndex);
+        distance = rf.getDistance();
+        cores = rf.getCore();
 
-        double distance = rf.getDistance();
-        ArrayList<CorePoint> cores = rf.getCore();
+//        System.out.println("Time to find core = "+ (Utils.getCPUTime() - start) * 1.0 / 1000000000);
         int case_ = 0;
         if (cores != null) {
             if (distance <= Constants.R / 2) {
@@ -549,6 +657,7 @@ public class CPOD {
             int oldNumSucNeighbor = d.numSucceedingNeighbor;
 //        outerloop:
             for (ArrayList<C_Data> ps : possibleCandidates) {
+                if(ps == null) continue;
 
                 for (int t = 0; t < ps.size(); t++) {
                     C_Data d2 = ps.get(t);
@@ -592,11 +701,13 @@ public class CPOD {
 
         //find close core
 //        long start = Utils.getCPUTime();
-        ResultFindCore rf = findCloseCore(d, slideIndex);
+        double distance = 0;
+        ArrayList<CorePoint> cores;
+        ResultFindCore rf = null;
+        rf = findCloseCore(d, slideIndex);
+        distance = rf.getDistance();
+        cores = rf.getCore();
 //        System.out.println("Time to find core = "+ (Utils.getCPUTime() - start) * 1.0 / 1000000000);
-
-        double distance = rf.getDistance();
-        ArrayList<CorePoint> cores = rf.getCore();
         int case_ = 0;
         if (cores != null) {
             if (distance <= Constants.R / 2) {
@@ -674,7 +785,7 @@ public class CPOD {
 
             outerloop:
             for (ArrayList<C_Data> ps : possibleCandidates) {
-
+                if(ps == null) continue;
                 for (int t = 0; t < ps.size(); t++) {
                     C_Data d2 = ps.get(t);
 //                if (!checked.contains(d2)) {
@@ -780,10 +891,12 @@ public class CPOD {
             //add to outlier List
             if (outlierList.containsKey(d.sIndex)) {
                 outlierList.get(d.sIndex).add(d);
+                outlierSet.add(d);
             } else {
                 HashSet hs = new HashSet();
                 hs.add(d);
                 outlierList.put(d.sIndex, hs);
+                outlierSet.add(d);
             }
         }
 //        timeForAddingToOutlierList += (Utils.getCPUTime() - start) * 1.0 / 1000000000;
@@ -925,6 +1038,7 @@ public class CPOD {
 
         private CorePoint closeCoreMaps_halfR;
         private ArrayList<CorePoint> closeCoreMaps_R = new ArrayList<>();
+        public String cellBase;
 
         public int sIndex = -1;
 
@@ -932,6 +1046,7 @@ public class CPOD {
             this.arrivalTime = d.arrivalTime;
             this.values = d.values;
             this.hashCode = d.hashCode;
+            this.cellBase = d.cellBase;
 
             this.sIndex = (arrivalTime - 1) / Constants.slide;
         }
@@ -1005,20 +1120,9 @@ public class CPOD {
             this.values = d.values;
             this.hashCode = d.hashCode;
             this.arrivalTime = d.arrivalTime;
-
+            this.sIndex = d.sIndex;
         }
 
-    }
-
-    public static String getCellBase(C_Data d) {
-        StringBuilder sb = new StringBuilder();
-        for(int i=0;i<Constants.dimensions;i++) {
-            sb.append((d.values[i] / Constants.edge) * Constants.edge);
-            if(i != Constants.dimensions - 1) {
-                sb.append(",");
-            }
-        }
-        return sb.toString();
     }
 }
 

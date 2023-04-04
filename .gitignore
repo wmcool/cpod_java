@@ -7,4 +7,7 @@ bin/
 Deployment/
 lib/
 target
-tao.txt
+*.txt
+*.class
+*.data
+MTree.iml

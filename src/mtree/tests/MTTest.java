@@ -4,10 +4,7 @@ import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import outlierexplanation.FPGExplanation;
 import outlierexplanation.WindowedOperator;
@@ -16,7 +13,7 @@ import outlierexplanation.exstream.model.Reward;
 import mtree.utils.Constants;
 import mtree.utils.Utils;
 
-import outlierdetection.CPOD;
+import outlierdetection.*;
 import outlierexplanation.macrobase.IncrementalSummarizer;
 import outlierexplanation.macrobase.StreamEvaluator;
 import outlierexplanation.macrobase.model.DataFrame;
@@ -47,9 +44,8 @@ public class MTTest {
         Stream s = Stream.getInstance("");
 
         CPOD cpod = new CPOD();
+        MicroCluster_New mcod = new MicroCluster_New();
         StreamEvaluator se = new StreamEvaluator(Constants.W);
-
-        double totalTime = 0;
 
         IncrementalSummarizer outlierSummarizer = new IncrementalSummarizer();
         outlierSummarizer.setOutlierColumn("outlier");
@@ -77,8 +73,6 @@ public class MTTest {
             } else {
                 incomingData = s.getIncomingData(currentTime, Constants.W, Constants.dataFile);
                 currentTime = currentTime + Constants.W;
-                Constants.dimensions = incomingData.get(0).values.length;
-                Constants.edge = Math.pow(Constants.R, 1.0 / Constants.dimensions);
             }
 
             start = Utils.getCPUTime(); // requires java 1.5
@@ -86,9 +80,13 @@ public class MTTest {
             /**
              * do algorithm
              */
+            ArrayList<Data> outliers;
+            double elapsedTimeInSec;
+            double elapsedTimeInMS;
             switch (algorithm) {
                 case "cpod":
-                    ArrayList<Data> outliers = cpod.detectOutlier(incomingData, currentTime, Constants.W, Constants.slide);
+                    outliers = cpod.detectOutlier(incomingData, currentTime, Constants.W, Constants.slide);
+//                    Collections.sort(outliers, (a, b) -> (a.arrivalTime - b.arrivalTime));
 //                    if(outliers.isEmpty()) {
 //                        System.out.println("empty");
 //                        continue;
@@ -138,10 +136,21 @@ public class MTTest {
 //                    FPGExplanation explanation = windowedSummarizer.getResults().prune();
 //                    System.out.println(explanation.prettyPrint());
 //
-                    double elapsedTimeInSec = (Utils.getCPUTime() - start) * 1.0 / 1000000000;
+                    elapsedTimeInSec = (Utils.getCPUTime() - start) * 1.0 / 1000000000;
+                    elapsedTimeInMS = elapsedTimeInSec * 1000;
+                    System.out.println("Num outliers = " + outliers.size());
+//                    System.out.println("cur slide time: " + elapsedTimeInMS + "ms");
+                    System.out.println("cur slide time: " + elapsedTimeInSec + "s");
+                    if (numberWindows > 1) {
+                        MesureMemoryThread.totalTime += elapsedTimeInSec;
+                    }
+                    break;
+                case "mcod":
+                    outliers = mcod.detectOutlier(incomingData, currentTime, Constants.W, Constants.slide);
+                    elapsedTimeInSec = (Utils.getCPUTime() - start) * 1.0 / 1000000000;
                     System.out.println("Num outliers = " + outliers.size());
                     if (numberWindows > 1) {
-                        totalTime += elapsedTimeInSec;
+                        MesureMemoryThread.totalTime += elapsedTimeInSec;
                     }
 //
 //                    break;
@@ -149,7 +158,7 @@ public class MTTest {
             }
 
             if (numberWindows == 1) {
-                totalTime = 0;
+                MesureMemoryThread.totalTime = 0;
                 MesureMemoryThread.timeForIndexing = 0;
                 MesureMemoryThread.timeForNewSlide = 0;
                 MesureMemoryThread.timeForExpireSlide = 0;
@@ -159,7 +168,7 @@ public class MTTest {
 
         }
 
-        mesureThread.averageTime = totalTime * 1.0 / (numberWindows - 1);
+        mesureThread.averageTime = MesureMemoryThread.totalTime * 1.0 / (numberWindows - 1);
         mesureThread.writeResult();
         mesureThread.stop();
         mesureThread.interrupt();
@@ -204,8 +213,9 @@ public class MTTest {
                     case "--samplingTime":
                         Constants.samplingPeriod = Integer.valueOf(args[i + 1]);
                         break;
-
-
+                    case "--explainSingle":
+                        Constants.explanSingleOutlier = true;
+                        break;
                 }
             }
         }

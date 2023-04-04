@@ -12,6 +12,7 @@ public class Constants {
     public static int k = 50;
     public static int W = 10000;
     public static int numberWindow = -1;
+    public static boolean explanSingleOutlier = false;
     public static int slide = 500;
     public static int numCols = 1;
     public static int dimensions = 55;

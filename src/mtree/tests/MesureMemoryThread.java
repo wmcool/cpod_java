@@ -16,6 +16,7 @@ import mtree.utils.Constants;
  */
 public class MesureMemoryThread extends Thread {
 
+    public static double totalTime;
     public boolean stop = false;
 
     public static long maxMemory = 0;
@@ -73,6 +74,7 @@ public class MesureMemoryThread extends Thread {
     public void writeResult() {
 
         System.out.println("Peak memory: " + maxMemory * 1.0 / 1024 / 1024);
+        System.out.println("Total CPU time: " + totalTime);
         System.out.println("Average CPU time: " + averageTime);
 
 //        try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(Constants.outputFile, true)))) {

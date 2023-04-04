@@ -11,6 +11,7 @@ import java.util.PriorityQueue;
 import java.util.Random;
 
 import mtree.utils.Constants;
+import outlierdetection.CPOD;
 
 public class Stream {
 
@@ -18,6 +19,7 @@ public class Stream {
 
     public static Stream streamInstance;
     public static int lastArrivalTime = 0;
+    private static boolean first = true;
 
     public static Stream getInstance(String type) {
 
@@ -154,8 +156,14 @@ public class Stream {
 //                                    + (new Random()).nextDouble() / 10000000
                                     ;
                         }
+                        if(first) {
+                            Constants.dimensions = d.length;
+                            Constants.edge = Math.pow(Constants.R, 1.0 / Constants.dimensions);
+                            first = false;
+                        }
                         Data data = new Data(d);
                         data.arrivalTime = time;
+                        data.cellBase = getCellBase(data);
                         results.add(data);
                     }
                 }
@@ -169,6 +177,17 @@ public class Stream {
             e.printStackTrace();
         }
         return results;
+    }
+
+    public static String getCellBase(Data d) {
+        StringBuilder sb = new StringBuilder();
+        for(int i=0;i<Constants.dimensions;i++) {
+            sb.append((int)(d.values[i] / Constants.edge) * Constants.edge);
+            if(i != Constants.dimensions - 1) {
+                sb.append(",");
+            }
+        }
+        return sb.toString();
     }
 
     public void getRandomInput(int length, int range) {

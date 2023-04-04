@@ -1,5 +1,6 @@
 package mtree.tests;
 
+import java.util.Arrays;
 import java.util.Random;
 
 import mtree.DistanceFunctions.EuclideanCoordinate;
@@ -8,6 +9,7 @@ public class Data implements EuclideanCoordinate, Comparable<Data> {
 	
 	public double[] values;
 	public  int hashCode;
+	public String cellBase;
 	
 	//arrival time 
 	public int arrivalTime;
@@ -85,7 +87,15 @@ public class Data implements EuclideanCoordinate, Comparable<Data> {
 		return 0;
 	}
 
-    String toStringValue() {
+	@Override
+	public String toString() {
+		return "Data{" +
+				"values=" + Arrays.toString(values) +
+				", arrivalTime=" + arrivalTime +
+				'}';
+	}
+
+	String toStringValue() {
         String result = "";
         for(int i = 0 ; i < this.values.length; i++){
             result += this.values[i]+",";
