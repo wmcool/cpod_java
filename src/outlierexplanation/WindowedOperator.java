@@ -50,10 +50,11 @@ public class WindowedOperator<O>
      */
     @Override
     public void process(DataFrame input) throws Exception {
-        List<DataFrame> newPanes = addToBuffer(input);
-        for (DataFrame pane: newPanes) {
-            op.process(pane);
-        }
+//        List<DataFrame> newPanes = addToBuffer(input);
+//        for (DataFrame pane: newPanes) {
+//            op.process(pane);
+//        }
+        op.process(input);
     }
 
     /**

@@ -5,14 +5,7 @@
  */
 package outlierdetection;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import de.bwaldvogel.liblinear.*;
 import mtree.ComposedSplitFunction;
@@ -21,7 +14,6 @@ import mtree.MTree;
 import mtree.PartitionFunctions;
 import mtree.PromotionFunction;
 import mtree.tests.Data;
-import mtree.tests.MTTest;
 import mtree.utils.Constants;
 import mtree.utils.Pair;
 import mtree.utils.Utils;
@@ -60,9 +52,13 @@ public class CPOD {
     public static int countPoint = 0;
 
     public double avgNumCorePointsPerWindows = 0;
+    public double precision = 0;
+    public double recall = 0;
+    public double Fscore = 0;
+    public int numOutlier = 0;
 
 //    public double timeForFirstWindow = 0;
-    public ArrayList<Data> detectOutlier(ArrayList<Data> data, int _currentTime, int W, int slide) {
+    public ArrayList<Data> detectOutlier(ArrayList<Data> data, ArrayList<int[]> lbs, int _currentTime, int W, int slide) {
 
         currentTime = _currentTime;
 
@@ -158,51 +154,114 @@ public class CPOD {
                 if (d.neighborCount < Constants.k) {
                     result.add(d);
                 }
+                if(Constants.explainSingleOutlier) {
+                    for(int slideP : slide_to_process) {
+                        if(slideP == d.sIndex) {
+                            int lbIdx;
+                            if(currentTime == W) {
+                                lbIdx = (d.arrivalTime - 1 + Constants.W) % Constants.W;
+                            } else {
+                                lbIdx = (d.arrivalTime - 1 + Constants.slide) % Constants.slide;
+                            }
+                            int[] l = lbs.get(lbIdx);
+                            List<FeatureNode[]> trainData = new ArrayList<>();
+//                            FeatureNode[][] trainData = new FeatureNode[6][d.values.length];
+//                            double[] labels = new double[6];
+                            List<Double> labels = new ArrayList<>();
+                            for(int k=-3;k<3;k++) {
+                                int idx = lbIdx + k;
+                                if(idx < 0 || idx >= d_to_process.size()) continue;
+                                C_Data cur = d_to_process.get(idx);
+                                if(cur != d && outlierSet.contains(cur)) continue;
+                                FeatureNode[] curFt = new FeatureNode[d.values.length];
+                                for(int j=1;j<=cur.values.length;j++) {
+//                                    trainData[k+3][j-1] = new FeatureNode(j, cur.values[j-1]);
+                                    curFt[j-1] = new FeatureNode(j, cur.values[j-1]);
+                                }
+                                trainData.add(curFt);
+                                labels.add((double) (outlierSet.contains(cur)? -1 : 1));
+//                                labels[k+3] = outlierSet.contains(cur)? -1 : 1;
+                            }
+                            FeatureNode[][] td = new FeatureNode[trainData.size()][d.values.length];
+                            for(int k=0;k<trainData.size();k++) {
+                                td[k] = trainData.get(k);
+                            }
+                            double[] lb = new double[labels.size()];
+                            for(int k=0;k<labels.size();k++) {
+                                lb[k] = labels.get(k);
+                            }
+                            // 创建问题对象
+                            Problem problem = new Problem();
+                            problem.l = lb.length; // 样本数量
+                            problem.n = td[0].length; // 特征数量
+                            problem.x = td; // 训练数据
+                            problem.y = lb; // 标签
+
+                            // 设置线性SVM的参数
+                            SolverType solver = SolverType.L2R_L2LOSS_SVC;
+                            double C = 1.0;
+                            double eps = 0.01;
+                            Parameter parameter = new Parameter(solver, C, eps);
+                            // 训练模型
+                            Model model = Linear.train(problem, parameter);
+                            System.out.println("outlier " + d + " weight ");
+                            for(double w : model.getFeatureWeights()) {
+                                System.out.print(w + ", ");
+                            }
+                            computeMetrics(model.getFeatureWeights(), l);
+                            System.out.println();
+                        }
+                    }
+                }
             }
         }
 
-        if(Constants.explanSingleOutlier) {
-            for(Data d : result) {
-//            MTreeCorePoint.Query query = mtree.getNearest(d, Double.MAX_VALUE, 5);
-//            CorePoint c = null;
-//            double distance = Double.MAX_VALUE;
-                FeatureNode[][] trainData = new FeatureNode[6][d.values.length];
-                double[] labels = new double[6];
-                for(int k=-3;k<3;k++) {
-                    int idx;
-                    if(currentTime == W) {
-                        idx = (d.arrivalTime + k + Constants.W) % Constants.W;
-                    } else {
-                        idx = (d.arrivalTime + k + Constants.slide) % Constants.slide;
-                    }
-                    C_Data cur = d_to_process.get(idx);
-                    for(int j=1;j<=cur.values.length;j++) {
-                        trainData[k+3][j-1] = new FeatureNode(j, cur.values[j-1]);
-                    }
-                    labels[k+3] = outlierSet.contains(cur)? -1 : 1;
-                }
-                // 创建问题对象
-                Problem problem = new Problem();
-                problem.l = labels.length; // 样本数量
-                problem.n = trainData[0].length; // 特征数量
-                problem.x = trainData; // 训练数据
-                problem.y = labels; // 标签
-
-                // 设置线性SVM的参数
-                SolverType solver = SolverType.L2R_L2LOSS_SVC;
-                double C = 1.0;
-                double eps = 0.01;
-                Parameter parameter = new Parameter(solver, C, eps);
-                // 训练模型
-                Model model = Linear.train(problem, parameter);
-                System.out.println("outlier " + d + " weight ");
-                for(double w : model.getFeatureWeights()) {
-                    System.out.print(w + ", ");
-                }
-                System.out.println();
-            }
-        }
+//        if(Constants.explanSingleOutlier) {
+//            for(Data d : result) {
+////            MTreeCorePoint.Query query = mtree.getNearest(d, Double.MAX_VALUE, 5);
+////            CorePoint c = null;
+////            double distance = Double.MAX_VALUE;
+//
+//            }
+//        }
         return result;
+    }
+
+    private static class Pair {
+        int idx;
+        double wi;
+
+        Pair(int idx, double wi) {
+            this.idx = idx;
+            this.wi = wi;
+        }
+    }
+
+    public void computeMetrics(double[] w, int[] label) {
+        int numAttr = 0;
+        for(int i=0;i<label.length;i++) {
+            if(label[i] == 1) numAttr++;
+        }
+        if(numAttr == 0) return;
+        ArrayList<Pair> pairs = new ArrayList<>();
+        for(int i=0;i<w.length;i++) {
+            Pair pair = new Pair(i, Math.abs(w[i]));
+            pairs.add(pair);
+        }
+        Collections.sort(pairs, (a, b) -> {
+            if(b.wi > a.wi) return 1;
+            else if(b.wi < a.wi) return -1;
+            else return 0;
+        });
+        int hit = 0;
+        for(int k=0;k<numAttr;k++) {
+            if(label[pairs.get(k).idx] == 1) {
+                hit++;
+            }
+        }
+        precision += (double)hit / numAttr;
+        recall += (double)hit / numAttr;
+        numOutlier++;
     }
 
     public double computeNumberActiveCorePoints() {

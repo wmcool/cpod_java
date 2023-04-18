@@ -12,7 +12,8 @@ public class Constants {
     public static int k = 50;
     public static int W = 10000;
     public static int numberWindow = -1;
-    public static boolean explanSingleOutlier = false;
+    public static boolean explainSingleOutlier = false;
+    public static boolean explainWindowOutlier = false;
     public static int slide = 500;
     public static int numCols = 1;
     public static int dimensions = 55;
@@ -48,6 +49,7 @@ public class Constants {
 //    public static String outputMicro = "C:\\Users\\Luan\\MTree\\micro";
 //    public static String STT = "C:\\Users\\Luan\\MTree_New\\stt.txt";
     public static String dataFile= "";
+    public static String labelFile="";
     public static String outputFile= "outputDefault.txt";
     public static String resultFile="";
     

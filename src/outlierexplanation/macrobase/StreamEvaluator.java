@@ -2,6 +2,7 @@ package outlierexplanation.macrobase;
 
 import mtree.tests.Data;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
+import outlierexplanation.exstream.model.Reward;
 
 import java.util.*;
 
@@ -43,6 +44,34 @@ public class StreamEvaluator {
         return res;
     }
 
+    public List<String[]> addDatas(List<Data> datas, List<Reward> rewards) {
+        Collections.sort(rewards, (a, b) -> (a.attrIdx - b.attrIdx));
+        for(Data data : datas) {
+            if(points.size() == n) points.removeFirst();
+            points.addLast(data);
+        }
+        List<String[]> res = new ArrayList<>();
+        for(Data data : datas) {
+            int m = data.values.length;
+            String[] transformedColVal = new String[m];
+            for(int k=0;k<m;k++) {
+                double curVal = data.values[k];
+                int searchRes = 0;
+                if(!rewards.get(k).explanations.isEmpty()) {
+                    for(double[] range : rewards.get(k).explanations) {
+                        if(curVal >= range[0] && curVal <= range[1]) {
+                            searchRes = 1;
+                            break;
+                        }
+                    }
+                }
+                transformedColVal[k] = k + ":" + searchRes;
+            }
+            res.add(transformedColVal);
+        }
+        return res;
+    }
+
     private void evaluate() {
         int b = points.getFirst().values.length;
         while(boundaries.size() < b) {
@@ -61,6 +90,10 @@ public class StreamEvaluator {
             }
             boundaries.set(i, curBoudaries);
         }
+    }
+
+    private void evaluate(List<Reward> rewards) {
+
     }
 
     public void setBoundaryPercentiles(double[] boundaryPercentiles) {

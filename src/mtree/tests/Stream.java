@@ -179,6 +179,44 @@ public class Stream {
         return results;
     }
 
+    public ArrayList<int[]> getIncomingLabel(int currentTime, int length, String filename) {
+
+
+        ArrayList<int[]> results = new ArrayList<>();
+
+        try {
+            BufferedReader bfr = new BufferedReader(new FileReader(new File(filename)));
+
+            String line = "";
+            int time = 0;
+//            HashSet<Integer> selected_idx = new HashSet<Integer>();
+            try {
+                while ((line = bfr.readLine()) != null) {
+                    time++;
+                    if (time > currentTime && time <= currentTime + length) {
+                        String[] atts = line.split(",");
+                        int[] d = new int[atts.length];
+                        for (int i = 0; i < d.length; i++) {
+
+                            d[i] = Integer.valueOf(atts[i])
+//                                    + (new Random()).nextDouble() / 10000000
+                            ;
+                        }
+                        results.add(d);
+                    }
+                }
+                bfr.close();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return results;
+    }
+
     public static String getCellBase(Data d) {
         StringBuilder sb = new StringBuilder();
         for(int i=0;i<Constants.dimensions;i++) {
