@@ -25,6 +25,7 @@ public class AttributeEncoder {
     private HashMap<Integer, String> valueDecoder;
     private HashMap<Integer, Integer> columnDecoder;
     private List<String> colNames;
+    private List<Integer> colIdxs;
     private HashMap<Integer, ModBitSet>[][] bitmap;
     private int[] colCardinalities;
     private ArrayList<Integer> outlierList[];
@@ -40,9 +41,13 @@ public class AttributeEncoder {
         this.colNames = colNames;
     }
 
+    public void setColumnIdxs(List<Integer> idxs) {
+        this.colIdxs = idxs;
+    }
+
     public int decodeColumn(int i) {return columnDecoder.get(i);}
-    public String decodeColumnName(int i) {return colNames.get(columnDecoder.get(i));}
-    public String decodeValue(int i) {return valueDecoder.get(i);}
+    public String decodeColumnName(int i) {return i/2 + "";}
+    public String decodeValue(int i) {return i + "";}
     public HashMap<Integer, Integer> getColumnDecoder() {return columnDecoder;}
     public HashMap<Integer, ModBitSet>[][] getBitmap() {return bitmap;}
     public ArrayList<Integer>[] getOutlierList() {return outlierList;}
@@ -195,12 +200,6 @@ public class AttributeEncoder {
         int numColumns = columns.size();
         int numRows = columns.get(0).length;
 
-        for (int i = 0; i < numColumns; i++) {
-            if (!encoder.containsKey(i)) {
-                encoder.put(i, new HashMap<>());
-            }
-        }
-
         colCardinalities = new int[numColumns];
         for (int i = 0; i < numColumns; i++)
             colCardinalities[i] = cardinalityThreshold + 1;
@@ -208,18 +207,11 @@ public class AttributeEncoder {
         int[][] encodedAttributes = new int[numRows][numColumns];
 
         for (int colIdx = 0; colIdx < numColumns; colIdx++) {
-            Map<String, Integer> curColEncoder = encoder.get(colIdx);
+            if(!colIdxs.contains(colIdx)) continue;
             String[] curCol = columns.get(colIdx);
             for (int rowIdx = 0; rowIdx < numRows; rowIdx++) {
                 String colVal = curCol[rowIdx];
-                if (!curColEncoder.containsKey(colVal)) {
-                    curColEncoder.put(colVal, nextKey);
-                    valueDecoder.put(nextKey, colVal);
-                    columnDecoder.put(nextKey, colIdx);
-                    nextKey++;
-                }
-                int curKey = curColEncoder.get(colVal);
-                encodedAttributes[rowIdx][colIdx] = curKey;
+                encodedAttributes[rowIdx][colIdx] = 2 * colIdx + Integer.parseInt(colVal);
             }
         }
 

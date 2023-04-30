@@ -88,9 +88,9 @@ public class IncrementalSummarizer implements IncrementalOperator<FPGExplanation
     }
     public DoublePredicate getOutlierPredicate() { return predicate; }
 
-    public IncrementalSummarizer setAttributes(List<String> attributes) {
-        this.attributes = attributes;
-        this.encoder.setColumnNames(attributes);
+    public IncrementalSummarizer setAttributes(List<Integer> attributes) {
+//        this.attributes = attributes;
+        this.encoder.setColumnIdxs(attributes);
         return this;
     }
     public List<String> getAttributes() { return attributes; }
@@ -117,16 +117,8 @@ public class IncrementalSummarizer implements IncrementalOperator<FPGExplanation
         DataFrame outlierDF = df.filter(outlierColumn, predicate);
         DataFrame inlierDF = df.filter(outlierColumn, predicate.negate());
 
-        // Encode inlier and outlier attribute columns
-        if (attributes.isEmpty()) {
-            encoder.setColumnNames(df.getSchema().getColumnNamesByType(Schema.ColType.STRING));
-            inlierItemsets = encoder.encodeAttributesAsSets(inlierDF.getStringCols());
-            outlierItemsets = encoder.encodeAttributesAsSets(outlierDF.getStringCols());
-        } else {
-            encoder.setColumnNames(attributes);
-            inlierItemsets = encoder.encodeAttributesAsSets(inlierDF.getStringColsByName(attributes));
-            outlierItemsets = encoder.encodeAttributesAsSets(outlierDF.getStringColsByName(attributes));
-        }
+        inlierItemsets = encoder.encodeAttributesAsSets(inlierDF.getStringCols());
+        outlierItemsets = encoder.encodeAttributesAsSets(outlierDF.getStringCols());
     }
 
     /* Helper function to calculate cumulative pane count. This way, the support from pane a to
@@ -367,6 +359,11 @@ public class IncrementalSummarizer implements IncrementalOperator<FPGExplanation
         int currPanes = inlierPaneCounts.size();
         List<FPGAttributeSet> attributeSets = new ArrayList<>();
         for (Set<Integer> itemset : outlierItemsetWindowCount.keySet()) {
+            boolean flag = false;
+            for(Integer item : itemset) {
+                if((item & 1) == 0) flag = true;
+            }
+            if(flag) continue;
             int outlierSupport = outlierCountCumSum.get(currPanes) - outlierCountCumSum.get(trackingMap.get(itemset));
             int inlierSupport = inlierCountCumSum.get(currPanes) - inlierCountCumSum.get(trackingMap.get(itemset));
             double rr = RiskRatio.compute(inlierItemsetWindowCount.get(itemset),

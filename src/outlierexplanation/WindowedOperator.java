@@ -24,7 +24,7 @@ public class WindowedOperator<O>
     private double slideLength = 10.0;
 
     private double maxWindowTime;
-    private IncrementalOperator<O> op;
+    public IncrementalOperator<O> op;
 
     private ArrayList<DataFrame> batchBuffer;
 

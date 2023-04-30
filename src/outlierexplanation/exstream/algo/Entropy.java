@@ -17,25 +17,20 @@ public class Entropy {
         List<Reward> hSegments = segments(inliers, outliers);
         for(int i=0;i<hSegments.size();i++) {
             hSegments.get(i).reward = hClass / hSegments.get(i).reward;
+//            hSegments.get(i).reward = 1 / hSegments.get(i).reward;
         }
         Collections.sort(hSegments, (a, b) -> {
             if(a.reward > b.reward) return -1;
             else if(b.reward > a.reward) return 1;
             else return 0;
         });
-//        double maxDiff = -1;
-//        for(int i=1;i<hSegments.size();i++) {
-//            if(hSegments.get(i).reward - hSegments.get(i-1).reward > maxDiff) {
-//                maxDiff = hSegments.get(i).reward - hSegments.get(i-1).reward;
-//            }
-//        }
-//        int i = 1;
-//        for(;i<hSegments.size() && hSegments.get(i).reward - hSegments.get(i-1).reward < maxDiff;i++) {}
         List<Reward> res = new ArrayList<>();
-        res.addAll(hSegments);
-//        for(int j=0;j<i-1;j++) {
-//            res.add(hSegments.get(j));
-//        }
+        int i = hSegments.size() - 1;
+        for(;i>1 && hSegments.get(i-1).reward - hSegments.get(i).reward < 0.01;i--) {
+        }
+        for(int j=0;j<i;j++) {
+            res.add(hSegments.get(j));
+        }
         return res;
     }
 
@@ -57,6 +52,7 @@ public class Entropy {
             int p = 0, q = 0;
             while(p < inlierAttr.size() || q < outlierAttr.size()) {
                 Segment segment = new Segment();
+                int numOutCur = 0;
                 if(p == inlierAttr.size()) {
                     segment.outlier = true;
                     while(q < outlierAttr.size()) {
@@ -79,11 +75,16 @@ public class Entropy {
                     } else {
                         while(p < inlierAttr.size() && q < outlierAttr.size() && inlierAttr.get(p).equals(outlierAttr.get(q))) {
                             segment.mixed = true;
-                            segment.add(inlierAttr.get(p++));
-                            q++;
+                            double cur = inlierAttr.get(p);
+                            while(p < inlierAttr.size() && inlierAttr.get(p) == cur) segment.add(inlierAttr.get(p++));
+                            while(q < outlierAttr.size() && outlierAttr.get(q) == cur) {
+                                segment.add(outlierAttr.get(q++));
+                                numOutCur++;
+                            }
                         }
                     }
                 }
+                segment.prop = (double)numOutCur / outlierAttr.size();
                 segments.add(segment);
             }
             int sum = 0;
@@ -94,7 +95,7 @@ public class Entropy {
             reward.attrIdx = i;
             for(Segment segment : segments) {
                 double per = (double)segment.points.size() / sum;
-                reward.reward += per * Math.log(per);
+                reward.reward += -per * Math.log(per);
                 if(segment.outlier) {
                     double[] range = new double[2];
                     if(segment.points.size() == 1) {
@@ -109,7 +110,7 @@ public class Entropy {
                 if(segment.mixed) {
                     int mixSize = segment.points.size();
                     double mixPer = 1 / (double)mixSize;
-                    reward.reward += Math.log(mixPer);
+                    reward.reward += -Math.log(mixPer) * segment.prop;
                 }
             }
             res.add(reward);
@@ -120,7 +121,7 @@ public class Entropy {
     private static double entropy(double... ps) {
         double res = 0;
         for(double p : ps) {
-            res += p * Math.log(p);
+            res += -p * Math.log(p);
         }
         return res;
     }

@@ -7,6 +7,7 @@ public class Segment {
     public List<Double> points;
     public boolean mixed;
     public boolean outlier;
+    public double prop;
 
     public Segment() {
         points = new ArrayList<>();

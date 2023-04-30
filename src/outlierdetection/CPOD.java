@@ -151,7 +151,7 @@ public class CPOD {
                         probe(d, newestSlide);
                     }
                 }
-                if (d.neighborCount < Constants.k) {
+                if (d.neighborCount < Constants.k && (currentTime == W || d.sIndex == newestSlide)) {
                     result.add(d);
                 }
                 if(Constants.explainSingleOutlier) {

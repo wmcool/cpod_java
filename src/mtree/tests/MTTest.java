@@ -49,7 +49,7 @@ public class MTTest {
 
         IncrementalSummarizer outlierSummarizer = new IncrementalSummarizer();
         outlierSummarizer.setOutlierColumn("outlier");
-        outlierSummarizer.setMinSupport(.5);
+        outlierSummarizer.setMinSupport(0.05);
         WindowedOperator<FPGExplanation> windowedSummarizer = new WindowedOperator<>(outlierSummarizer);
         windowedSummarizer.setWindowLength(Constants.W);
         windowedSummarizer.setTimeColumn("time");
@@ -116,6 +116,11 @@ public class MTTest {
                                 }
                             }
                         }
+                        List<Integer> idxs = new ArrayList<>();
+                        for(Reward reward : rewards) {
+                            idxs.add(reward.attrIdx);
+                        }
+                        outlierSummarizer.setAttributes(idxs);
                         // Macrobase
                         List<String[]> scatter = se.addDatas(incomingData, rewards);
                         Set<Data> exist = new HashSet<>();
@@ -143,7 +148,8 @@ public class MTTest {
                         df.addColumn("outlier", isOutlier);
                         df.addColumn("time", time);
                         windowedSummarizer.process(df);
-                        FPGExplanation explanation = windowedSummarizer.getResults().prune();
+//                        FPGExplanation explanation = windowedSummarizer.getResults().prune();
+                        FPGExplanation explanation = windowedSummarizer.getResults();
                         System.out.println(explanation.prettyPrint());
 //
                         elapsedTimeInSec = (Utils.getCPUTime() - start) * 1.0 / 1000000000;

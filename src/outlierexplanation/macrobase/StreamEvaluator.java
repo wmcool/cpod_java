@@ -45,7 +45,6 @@ public class StreamEvaluator {
     }
 
     public List<String[]> addDatas(List<Data> datas, List<Reward> rewards) {
-        Collections.sort(rewards, (a, b) -> (a.attrIdx - b.attrIdx));
         for(Data data : datas) {
             if(points.size() == n) points.removeFirst();
             points.addLast(data);
@@ -57,15 +56,17 @@ public class StreamEvaluator {
             for(int k=0;k<m;k++) {
                 double curVal = data.values[k];
                 int searchRes = 0;
-                if(!rewards.get(k).explanations.isEmpty()) {
-                    for(double[] range : rewards.get(k).explanations) {
-                        if(curVal >= range[0] && curVal <= range[1]) {
-                            searchRes = 1;
-                            break;
+                for(Reward r : rewards) {
+                    if(r.attrIdx == k) {
+                        for(double[] range : r.explanations) {
+                            if(curVal >= range[0] && curVal <= range[1]) {
+                                searchRes = 1;
+                                break;
+                            }
                         }
                     }
                 }
-                transformedColVal[k] = k + ":" + searchRes;
+                transformedColVal[k] = searchRes + "";
             }
             res.add(transformedColVal);
         }
