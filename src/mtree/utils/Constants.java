@@ -50,6 +50,7 @@ public class Constants {
 //    public static String STT = "C:\\Users\\Luan\\MTree_New\\stt.txt";
     public static String dataFile= "";
     public static String labelFile="";
+    public static String releFile="";
     public static String outputFile= "outputDefault.txt";
     public static String resultFile="";
     

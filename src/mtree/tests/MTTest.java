@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 
+import org.checkerframework.checker.units.qual.C;
+import outlierexplanation.FPGAttributeSet;
 import outlierexplanation.FPGExplanation;
 import outlierexplanation.WindowedOperator;
 import outlierexplanation.exstream.algo.Entropy;
@@ -30,6 +32,16 @@ public class MTTest {
     public static int numberWindows = 0;
 
     public static double start;
+
+    public static double prec_ex;
+    public static double rec_ex;
+    public static double Fscore_ex;
+
+    public static double prec_mac;
+    public static double rec_mac;
+    public static double Fscore_mac;
+
+    public static int n;
 
     public static void main(String[] args) throws Exception {
 
@@ -67,12 +79,21 @@ public class MTTest {
 
             ArrayList<Data> incomingData;
             ArrayList<int[]> label = null;
+            HashSet<String> rele = new HashSet<>();
             if(!Constants.labelFile.equals("")) {
                 if (currentTime != 0) {
                     label = s.getIncomingLabel(currentTime, Constants.slide, Constants.labelFile);
 //                System.out.println("Last idx time = " + (incomingData.get(incomingData.size()-1).arrivalTime-1));
                 } else {
                     label = s.getIncomingLabel(currentTime, Constants.W, Constants.labelFile);
+                }
+            }
+            if(!Constants.releFile.equals("")) {
+                if (currentTime != 0) {
+                    rele = s.getIncomingRele(currentTime, Constants.slide, Constants.releFile);
+//                System.out.println("Last idx time = " + (incomingData.get(incomingData.size()-1).arrivalTime-1));
+                } else {
+                    rele = s.getIncomingRele(currentTime, Constants.W, Constants.releFile);
                 }
             }
             if (currentTime != 0) {
@@ -148,10 +169,10 @@ public class MTTest {
                         df.addColumn("outlier", isOutlier);
                         df.addColumn("time", time);
                         windowedSummarizer.process(df);
-//                        FPGExplanation explanation = windowedSummarizer.getResults().prune();
-                        FPGExplanation explanation = windowedSummarizer.getResults();
+                        FPGExplanation explanation = windowedSummarizer.getResults().prune();
+//                        FPGExplanation explanation = windowedSummarizer.getResults();
                         System.out.println(explanation.prettyPrint());
-//
+                        validate(rewards, explanation, rele);
                         elapsedTimeInSec = (Utils.getCPUTime() - start) * 1.0 / 1000000000;
                         elapsedTimeInMS = elapsedTimeInSec * 1000;
                         System.out.println("Num outliers = " + outliers.size());
@@ -161,7 +182,7 @@ public class MTTest {
                             MesureMemoryThread.totalTime += elapsedTimeInSec;
                         }
                     }
-                    Thread.sleep(1000);
+//                    Thread.sleep(1000);
                     break;
                 case "mcod":
                     outliers = mcod.detectOutlier(incomingData, currentTime, Constants.W, Constants.slide);
@@ -193,9 +214,24 @@ public class MTTest {
         if(Constants.explainSingleOutlier) {
             double precision = cpod.precision / cpod.numOutlier;
             double recall = cpod.recall / cpod.numOutlier;
-            System.out.println("precision: " + precision);
-            System.out.println("recall: " + recall);
-            System.out.println("F score: " + 2 * precision * recall / (precision + recall));
+            System.out.println("single precision: " + precision);
+            System.out.println("single recall: " + recall);
+            System.out.println("single F score: " + 2 * precision * recall / (precision + recall));
+        }
+        if(Constants.explainWindowOutlier) {
+            // ex
+            double precision = prec_ex / n;
+            double recall = rec_ex / n;
+            System.out.println("window precision: " + precision);
+            System.out.println("window recall: " + recall);
+            System.out.println("window F score: " + 2 * precision * recall / (precision + recall));
+
+            // mac
+            precision = prec_mac / n;
+            recall = rec_mac / n;
+            System.out.println("asso precision: " + precision);
+            System.out.println("asso recall: " + recall);
+            System.out.println("asso F score: " + 2 * precision * recall / (precision + recall));
         }
     }
 
@@ -224,6 +260,9 @@ public class MTTest {
                         break;
                     case "--labelFile":
                         Constants.labelFile = args[i + 1];
+                        break;
+                    case "--releFile":
+                        Constants.releFile = args[i + 1];
                         break;
                     case "--output":
                         Constants.outputFile = args[i + 1];
@@ -262,4 +301,42 @@ public class MTTest {
 
     }
 
+    private static void validate(List<Reward> rewards, FPGExplanation explanation, HashSet<String> rele) {
+        if(rele.isEmpty()) return;
+        n++;
+        // Exstream
+        HashSet<Integer> attrs = new HashSet<>();
+        for(String s : rele) {
+            String[] sp = s.split(",");
+            for(String idx : sp) {
+                attrs.add(Integer.parseInt(idx));
+            }
+        }
+//        double prec_ex_hit = 0;
+//        for(Reward reward : rewards) {
+//            if(attrs.contains(reward.attrIdx)) prec_ex_hit++;
+//        }
+//        prec_ex += prec_ex_hit / (double) rewards.size();
+        double rec_ex_hit = 0;
+        for(Integer idx : attrs) {
+            for(Reward reward : rewards) {
+                if(reward.attrIdx == (int)idx) {
+                    rec_ex_hit++;
+                }
+            }
+        }
+        rec_ex += rec_ex_hit / (double) attrs.size();
+
+        double rec_mac_hit = 0;
+        for(String s : rele) {
+            String[] sp = s.split(",");
+            HashSet<String> hs = new HashSet<>(Arrays.asList(sp));
+            for(FPGAttributeSet fpa : explanation.getItemsets()) {
+                if(fpa.items.keySet().containsAll(hs)) {
+                    rec_mac_hit++;
+                }
+            }
+        }
+        rec_mac += rec_mac_hit / (double) rele.size();
+    }
 }

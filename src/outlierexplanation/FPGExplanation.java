@@ -40,7 +40,7 @@ public class FPGExplanation implements Explanation {
             // than an explanation that involves a subset of the same attributes
             for (int j = 0; j < i; j++) {
                 FPGAttributeSet comparisonSet = itemsets.get(j);
-                if (aSet.contains(comparisonSet)) {
+                if (comparisonSet.contains(aSet)) {
                     redundant = true;
                     break;
                 }

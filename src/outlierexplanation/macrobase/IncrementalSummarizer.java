@@ -299,8 +299,9 @@ public class IncrementalSummarizer implements IncrementalOperator<FPGExplanation
     private void addNewFrequent() {
         // Return when the outlier population is too small, otherwise all
         // outlying combos in the current pane might get tracked
-        if (minOutlierSupport * outlierItemsets.size() < 1) { return; }
-        double minSupport = Math.ceil(minOutlierSupport * outlierItemsets.size());
+//        if (minOutlierSupport * outlierItemsets.size() < 1) { return; }
+//        double minSupport = Math.ceil(minOutlierSupport * outlierItemsets.size());
+        double minSupport = 5;
         HashMap<Integer, Double> inlierPaneSingletonCount = new ExactCount().count(inlierItemsets).getCounts();
         // Get new frequent itemsets in outliers
         FPGrowth fpGrowth = new FPGrowth();

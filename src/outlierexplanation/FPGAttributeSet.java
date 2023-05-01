@@ -8,7 +8,7 @@ public class FPGAttributeSet implements Comparable<FPGAttributeSet>{
     private double support;
     private long numRecords;
     private double ratioToInliers;
-    private Map<String, String> items = new HashMap<>();
+    public Map<String, String> items = new HashMap<>();
 
     public FPGAttributeSet(FPGItemsetResult its, AttributeEncoder encoder) {
         this.support = its.getSupport();
@@ -88,8 +88,8 @@ public class FPGAttributeSet implements Comparable<FPGAttributeSet>{
 
     @Override
     public int compareTo(FPGAttributeSet o) {
-        double r1 = this.getRatioToInliers();
-        double r2 = o.getRatioToInliers();
-        return Double.compare(r1, r2);
+        int r1 = this.items.size();
+        int r2 = o.items.size();
+        return Integer.compare(r1, r2);
     }
 }

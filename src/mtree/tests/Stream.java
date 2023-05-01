@@ -5,10 +5,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.PriorityQueue;
-import java.util.Random;
+import java.util.*;
 
 import mtree.utils.Constants;
 import outlierdetection.CPOD;
@@ -215,6 +212,49 @@ public class Stream {
             e.printStackTrace();
         }
         return results;
+    }
+
+    public HashSet<String> getIncomingRele(int currentTime, int length, String filename) {
+
+
+        HashSet<String> res = new HashSet<>();
+
+        try {
+            BufferedReader bfr = new BufferedReader(new FileReader(new File(filename)));
+
+            String line = "";
+            int time = 0;
+//            HashSet<Integer> selected_idx = new HashSet<Integer>();
+            try {
+                while ((line = bfr.readLine()) != null) {
+                    time++;
+                    if (time > currentTime && time <= currentTime + length) {
+                        String[] atts = line.split(",");
+                        int[] d = new int[atts.length];
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < d.length; i++) {
+
+                            if(atts[i].equals("1")) {
+                                sb.append(i + ",");
+                            }
+//                                    + (new Random()).nextDouble() / 10000000
+                            ;
+                        }
+                        if(sb.length() != 0) {
+                            res.add(sb.substring(0, sb.length() - 1));
+                        }
+                    }
+                }
+                bfr.close();
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        } catch (FileNotFoundException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return res;
     }
 
     public static String getCellBase(Data d) {
