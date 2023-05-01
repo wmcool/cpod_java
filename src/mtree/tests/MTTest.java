@@ -38,6 +38,7 @@ public class MTTest {
     public static double Fscore_ex;
 
     public static double prec_mac;
+    public static int mac_n = 0;
     public static double rec_mac;
     public static double Fscore_mac;
 
@@ -68,7 +69,7 @@ public class MTTest {
         windowedSummarizer.setSlideLength(Constants.slide);
         windowedSummarizer.initialize();
 
-
+        FPGExplanation lastExplanation = null;
         while (!stop) {
 
             numberWindows++;
@@ -172,7 +173,8 @@ public class MTTest {
                         FPGExplanation explanation = windowedSummarizer.getResults().prune();
 //                        FPGExplanation explanation = windowedSummarizer.getResults();
                         System.out.println(explanation.prettyPrint());
-                        validate(rewards, explanation, rele);
+                        validate(rewards, lastExplanation, explanation, rele);
+                        lastExplanation = explanation;
                         elapsedTimeInSec = (Utils.getCPUTime() - start) * 1.0 / 1000000000;
                         elapsedTimeInMS = elapsedTimeInSec * 1000;
                         System.out.println("Num outliers = " + outliers.size());
@@ -227,7 +229,7 @@ public class MTTest {
             System.out.println("window F score: " + 2 * precision * recall / (precision + recall));
 
             // mac
-            precision = prec_mac / n;
+            precision = prec_mac / mac_n;
             recall = rec_mac / n;
             System.out.println("asso precision: " + precision);
             System.out.println("asso recall: " + recall);
@@ -301,7 +303,7 @@ public class MTTest {
 
     }
 
-    private static void validate(List<Reward> rewards, FPGExplanation explanation, HashSet<String> rele) {
+    private static void validate(List<Reward> rewards, FPGExplanation lastExplanation, FPGExplanation explanation, HashSet<String> rele) {
         if(rele.isEmpty()) return;
         n++;
         // Exstream
@@ -312,11 +314,11 @@ public class MTTest {
                 attrs.add(Integer.parseInt(idx));
             }
         }
-//        double prec_ex_hit = 0;
-//        for(Reward reward : rewards) {
-//            if(attrs.contains(reward.attrIdx)) prec_ex_hit++;
-//        }
-//        prec_ex += prec_ex_hit / (double) rewards.size();
+        double prec_ex_hit = 0;
+        for(Reward reward : rewards) {
+            if(attrs.contains(reward.attrIdx)) prec_ex_hit++;
+        }
+        prec_ex += prec_ex_hit / (double) rewards.size();
         double rec_ex_hit = 0;
         for(Integer idx : attrs) {
             for(Reward reward : rewards) {
@@ -326,7 +328,32 @@ public class MTTest {
             }
         }
         rec_ex += rec_ex_hit / (double) attrs.size();
-
+        double prec_mac_hit = 0;
+        double m = 0;
+        for(FPGAttributeSet fpa : explanation.getItemsets()) {
+            boolean flag = false;
+            if(lastExplanation != null) {
+                for(FPGAttributeSet lastFpa : lastExplanation.getItemsets()) {
+                    if(lastFpa.items.keySet().containsAll(fpa.items.keySet())){
+                        flag = true;
+                    }
+                }
+            }
+            if(!flag) {
+                m++;
+                for(String s : rele) {
+                    String[] sp = s.split(",");
+                    HashSet<String> hs = new HashSet<>(Arrays.asList(sp));
+                    if(fpa.items.keySet().containsAll(hs)) {
+                        prec_mac_hit++;
+                    }
+                }
+            }
+        }
+        if(m != 0) {
+            prec_mac += prec_mac_hit / m;
+            mac_n++;
+        }
         double rec_mac_hit = 0;
         for(String s : rele) {
             String[] sp = s.split(",");
