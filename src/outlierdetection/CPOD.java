@@ -199,8 +199,8 @@ public class CPOD {
 
                             // 设置线性SVM的参数
                             SolverType solver = SolverType.L2R_L2LOSS_SVC;
-                            double C = 1.0;
-                            double eps = 0.01;
+                            double C = 100.0;
+                            double eps = 0.001;
                             Parameter parameter = new Parameter(solver, C, eps);
                             // 训练模型
                             Model model = Linear.train(problem, parameter);
